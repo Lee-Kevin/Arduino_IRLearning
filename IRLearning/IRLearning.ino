@@ -2,7 +2,7 @@
  * Copyright (c) 2015 seeed technology inc.
  * Website    : www.seeed.cc
  * Author     : Jiankai Li 
- * Modified Time: Aug 2015
+ * Modified Time: Aug 2016
  * Description: Must connect the IR send pins to D13 for Leonardo,D3 for Arduino Uno. Connect IR Reciver to D5
  * 
  * This is a demo that can learn IR - Decode according to your remote controller and save the IR - Code to EEPROM
@@ -98,43 +98,18 @@ uint8_t irdataload[6];
 
 #define debug 1
 
-void dtaInit()
-{
-    puIRData->IRdata.BIT_LEN_D      = 11;
-    puIRData->IRdata.BIT_START_H_D  = 179;
-    puIRData->IRdata.BIT_START_L_D  = 90;
-    puIRData->IRdata.BIT_DATA_H_D   = 11;
-    puIRData->IRdata.BIT_DATA_L_D   = 33;
-    puIRData->IRdata.BIT_DATA_LEN_D = 6;
-    
-    puIRData->IRdata.pData = irdataload;
-    
-    puIRData->IRdata.pData[0]       = 193;
-    puIRData->IRdata.pData[1]       = 96;
-    puIRData->IRdata.pData[2]       = 224;
-    puIRData->IRdata.pData[3]       = 67;
-    puIRData->IRdata.pData[4]       = 0;
-    puIRData->IRdata.pData[5]       = 0; 
-}
 
 void setup()
 {
-    dtaInit();
     
     #if debug
     Serial.begin(9600);
     Serial.println("IR Learning remote controller");
     
     Serial.println(EEPROM.length());
-    
-    for(int i=0; i<7; i++) {
-        Serial.println(puIRData->ucdata[i],DEC);
-    }
+
     Serial.println("-------------------------");
     #endif
-    CommandAddr[0]  = 2*commandNum;
-    saveCommand(CommandAddr[0],puIRData);
-    readCommand(CommandAddr[0],dtaSend);
     IR.Init(pinRecv);
     #if debug
     Serial.println("init over");
@@ -148,6 +123,7 @@ void loop()
     case IRLearning:
         #if debug
         Serial.println("This is IR Learning");
+        Serial.println("*********************************************");
         #endif
         for(int i=0; i<commandNum; ) {
             if(IR.IsDta()) {
@@ -162,8 +138,8 @@ void loop()
                 for(int i=0; i< dtaSend[BIT_DATA_LEN]; i++) {
                     puIRData->IRdata.pData[i]       = dtaSend[i+BIT_DATA];
                 }
-                
-                #if debug
+                      
+                #if 0
                 for(int j=0; j<6; j++) {
                     Serial.println(puIRData->ucdata[j],DEC);
                 }
@@ -177,17 +153,18 @@ void loop()
                 } 
                 if(i+1 < commandNum) {
                 CommandAddr[i+1]  = CommandAddr[i] + puIRData->IRdata.BIT_LEN_D + 1;
-                saveCommand(CommandAddr[i],puIRData);
                 } 
+                saveCommand(CommandAddr[i],puIRData);
                 saveAddrs(2*i,CommandAddr[i]);
-                i++;
-                
+
                 #if debug
                 char buf[30];
                 sprintf(buf,"IR Command %d Learning Done",i);
                 Serial.println(buf);
                 debugprint(dtaSend);
                 #endif
+                
+                i++;
             }
         }
         WorkingStatus = IRSend;
@@ -195,6 +172,7 @@ void loop()
     case IRSend:
         #if debug
         Serial.println("This is IR Send");
+        Serial.println("****************************************");
         #endif
         for(int i=0; i<commandNum; i++) {
             readCommand(CommandAddr[i],dtaSend);
@@ -232,7 +210,7 @@ void saveCommand(uint16_t addr, ptuIRData puIRData) {
     memcpy(data,puIRData->ucdata,6);
     memcpy(data+6,puIRData->IRdata.pData,puIRData->IRdata.BIT_DATA_LEN_D);
     #if debug
-    Serial.print("The data to save is:");
+    Serial.println("The data to save is:");
     #endif
 
     
